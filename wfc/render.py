@@ -36,12 +36,11 @@ def render_rgb(wave, patterns, palette):
     Undecided cells become the mean RGB of their possible patterns' colours.
     """
     palette = np.asarray(palette, dtype=float)
-    H, W, T = wave.shape
-    tl_rgb = palette[patterns[:, 0, 0]]  # (T, 3) RGB per pattern
-    out = np.zeros((H, W, 3), dtype=float)
-    for r in range(H):
-        for c in range(W):
-            possible = wave[r, c]
-            if possible.any():
-                out[r, c] = tl_rgb[possible].mean(axis=0)
+    tl_rgb = palette[patterns[:, 0, 0]]                    # (T, 3) RGB per pattern
+    counts = wave.sum(axis=2)                              # (H, W) possibilities
+    # Sum the colours of every still-possible pattern per cell, then average.
+    summed = np.tensordot(wave, tl_rgb, axes=([2], [0]))   # (H, W, 3)
+    safe = np.where(counts == 0, 1, counts)[..., None]     # avoid /0 on empty cells
+    out = summed / safe
+    out[counts == 0] = 0
     return out

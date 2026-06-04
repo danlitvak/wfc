@@ -133,3 +133,47 @@ narrative: *what* we built, *why*, and *what I learned doing it*.
   it from JS with `requestAnimationFrame` and re-render the (partly collapsed)
   wave each frame using `render_rgb`'s averaging for the "blurry until resolved"
   look.
+
+---
+
+## 2026-06-03 — Milestone 3 complete: live animated collapse
+
+**Engine change**
+- Vectorized `render_rgb` (was a per-cell Python double loop). New version:
+  `counts = wave.sum(2)`, `summed = tensordot(wave, tl_rgb, ([2],[0]))`, then
+  `summed / counts`. Same semantics (mean of possible patterns' colours) but
+  fast enough to call every animation frame. Pinned with a new test against a
+  reference loop (`tests/test_render.py`).
+
+**Web change** (`web/`):
+- Added a Python `Session` class to the driver: holds one solver, `step(n)`
+  advances n observations and returns the current wave as an RGBA frame, and it
+  **auto-restarts on `Contradiction`** (bumps the seed) so the animation never
+  stalls.
+- `main.js` now runs a permanent `requestAnimationFrame` loop. When "playing",
+  each frame calls `session.step(speed)` and redraws. Controls: Generate
+  (new session), Play/Pause, Step (single observation), Speed slider
+  (observations per frame).
+- The long-lived `Session` PyProxy is kept across frames and `.destroy()`ed when
+  a new one is generated; per-step result dicts are converted then destroyed.
+
+**Concepts learned / notes**
+- The "blurry until resolved" look comes for free from averaging: a cell with k
+  possible patterns shows the mean of their colours; as constraints prune k → 1
+  the colour snaps to the final pixel. (The initial all-possible frame is a
+  single flat colour — every cell averages the same full set.)
+- Keep one PyProxy object alive for the session rather than recreating Python
+  state each frame — cheaper and avoids re-extracting patterns/adjacency.
+- Driving the solver from `requestAnimationFrame` (vs a blocking loop) keeps the
+  page responsive and lets Pause/Step interrupt cleanly between frames.
+
+**Verified**
+- 14 pytest tests pass (added `test_render.py`: vectorized vs reference, exact
+  colour on a collapsed cell, `render_indices`).
+- Headless Node + Pyodide: `Session("maze", N=3, 24×40, seed=7)` animates to
+  `done` in 24 frames at 6 steps/frame, 2 auto-restarts, final frame collapsed.
+
+**Next step**
+- Milestone 4: editable sample grid on the left + wire "edit sample → re-extract
+  patterns → restart" so the user paints their own input. Expensive recompute
+  (patterns + adjacency) happens once per edit; per-frame stays cheap.

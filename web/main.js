@@ -1,7 +1,6 @@
-// Boots Pyodide, loads numpy and our wfc/ package, then renders a finished
-// WFC result to the canvas. Milestone 2: produce a final image (no animation).
+// Boots Pyodide, loads numpy + the wfc/ package, then drives the solver one
+// observation at a time so the collapse animates on the canvas (Milestone 3).
 
-// wfc package modules, loaded into Pyodide's in-memory filesystem at startup.
 const WFC_MODULES = [
   "__init__.py",
   "patterns.py",
@@ -11,11 +10,11 @@ const WFC_MODULES = [
   "samples.py",
 ];
 
-// The package lives one level up from web/ (repo-root/wfc/...).
+// Package lives one level up from web/ (repo-root/wfc/...).
 const WFC_BASE = "../wfc";
 
-// Python glue: imports the package and exposes a single solve() entry point
-// that returns a dict with a flat RGBA byte buffer ready for canvas ImageData.
+// Python glue: a Session holds one solver and steps it incrementally, returning
+// the current (partly collapsed) wave as a flat RGBA buffer each time.
 const DRIVER = `
 import numpy as np
 from wfc import extract_patterns, build_adjacency, WFCSolver, Contradiction
@@ -23,102 +22,157 @@ from wfc.samples import SAMPLES, PALETTE
 from wfc.render import render_rgb
 
 
-def solve(name, N, out_h, out_w, seed, symmetry, attempts):
-    sample = SAMPLES[name]
-    patterns, weights = extract_patterns(
-        sample, N=N, periodic_input=True, symmetry=symmetry)
-    compatible = build_adjacency(patterns)
+class Session:
+    def __init__(self, name, N, out_h, out_w, seed, symmetry):
+        self.out_h, self.out_w = out_h, out_w
+        self.base_seed = seed
+        self.restarts = 0
+        sample = SAMPLES[name]
+        self.patterns, self.weights = extract_patterns(
+            sample, N=N, periodic_input=True, symmetry=symmetry)
+        self.compatible = build_adjacency(self.patterns)
+        self._new_solver(seed)
 
-    for attempt in range(attempts):
-        s = None if seed is None else int(seed) + attempt
-        solver = WFCSolver(patterns, weights, compatible, (out_h, out_w), seed=s)
-        try:
-            solver.run()
-        except Contradiction:
-            continue  # restart with a different seed
-        rgb = render_rgb(solver.wave, patterns, PALETTE)
-        rgba = np.empty((out_h, out_w, 4), dtype=np.uint8)
+    def _new_solver(self, seed):
+        self.solver = WFCSolver(
+            self.patterns, self.weights, self.compatible,
+            (self.out_h, self.out_w), seed=seed)
+
+    def num_patterns(self):
+        return int(len(self.patterns))
+
+    def frame(self):
+        rgb = render_rgb(self.solver.wave, self.patterns, PALETTE)
+        rgba = np.empty((self.out_h, self.out_w, 4), dtype=np.uint8)
         rgba[..., :3] = rgb.astype(np.uint8)
         rgba[..., 3] = 255
-        return {
-            "ok": True,
-            "patterns": int(len(patterns)),
-            "attempt": attempt + 1,
-            "data": rgba.reshape(-1),
-        }
-    return {"ok": False, "patterns": int(len(patterns))}
+        return rgba.reshape(-1)
 
-solve
+    def step(self, n):
+        """Run up to n observations; auto-restart on a contradiction."""
+        for _ in range(n):
+            if self.solver.done:
+                break
+            try:
+                if self.solver.step() is None:
+                    break
+            except Contradiction:
+                self.restarts += 1
+                seed = None if self.base_seed is None else self.base_seed + self.restarts
+                self._new_solver(seed)
+                break
+        return {"done": bool(self.solver.done),
+                "restarts": int(self.restarts),
+                "data": self.frame()}
+
+Session
 `;
 
-const statusEl = document.getElementById("status");
-const runBtn = document.getElementById("run");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
+const els = {
+  status: document.getElementById("status"),
+  run: document.getElementById("run"),
+  play: document.getElementById("play"),
+  step: document.getElementById("step"),
+  speed: document.getElementById("speed"),
+  canvas: document.getElementById("canvas"),
+  sample: document.getElementById("sample"),
+  n: document.getElementById("n"),
+  h: document.getElementById("h"),
+  w: document.getElementById("w"),
+  seed: document.getElementById("seed"),
+};
+const ctx = els.canvas.getContext("2d");
+const off = document.createElement("canvas");
+const offCtx = off.getContext("2d");
 
-let solveFn = null;
+let SessionClass = null;
+let session = null;
+let playing = false;
+let dims = { w: 0, h: 0, patterns: 0 };
 
 function setStatus(msg) {
-  statusEl.textContent = msg;
+  els.status.textContent = msg;
 }
 
 async function loadWfcPackage(pyodide) {
   pyodide.FS.mkdir("wfc");
   for (const name of WFC_MODULES) {
     const resp = await fetch(`${WFC_BASE}/${name}`);
-    if (!resp.ok) {
-      throw new Error(`failed to fetch wfc/${name}: ${resp.status}`);
-    }
+    if (!resp.ok) throw new Error(`failed to fetch wfc/${name}: ${resp.status}`);
     pyodide.FS.writeFile(`wfc/${name}`, await resp.text());
   }
 }
 
-function draw(rgba, w, h) {
-  // Render at native resolution on an offscreen canvas, then scale up with
-  // nearest-neighbour so the pixels stay crisp.
-  const off = document.createElement("canvas");
+// Convert a Python uint8 numpy array (PyProxy) to a Uint8Array and free it.
+function takeBytes(proxy) {
+  const arr = proxy.toJs();
+  proxy.destroy();
+  return arr;
+}
+
+function draw(rgba) {
+  const { w, h } = dims;
   off.width = w;
   off.height = h;
-  off.getContext("2d").putImageData(
-    new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
+  offCtx.putImageData(new ImageData(new Uint8ClampedArray(rgba), w, h), 0, 0);
 
   const scale = Math.max(1, Math.floor(480 / w));
-  canvas.width = w * scale;
-  canvas.height = h * scale;
+  els.canvas.width = w * scale;
+  els.canvas.height = h * scale;
   ctx.imageSmoothingEnabled = false;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(off, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(off, 0, 0, els.canvas.width, els.canvas.height);
+}
+
+function setPlaying(on) {
+  playing = on;
+  els.play.textContent = on ? "Pause" : "Play";
+}
+
+// One advance of the solver, then render. Returns true while work remains.
+function advance(n) {
+  const proxy = session.step(n);
+  const r = proxy.toJs({ dict_converter: Object.fromEntries });
+  proxy.destroy();
+  draw(r.data);
+  const restarts = r.restarts ? `, ${r.restarts} restart(s)` : "";
+  if (r.done) {
+    setStatus(`Done — ${dims.patterns} patterns${restarts}.`);
+  } else {
+    setStatus(`Collapsing… ${dims.patterns} patterns${restarts}.`);
+  }
+  return !r.done;
+}
+
+function frameLoop() {
+  if (playing && session) {
+    const more = advance(Number(els.speed.value));
+    if (!more) setPlaying(false);
+  }
+  requestAnimationFrame(frameLoop);
 }
 
 function generate() {
-  const name = document.getElementById("sample").value;
-  const N = Number(document.getElementById("n").value);
-  const h = Number(document.getElementById("h").value);
-  const w = Number(document.getElementById("w").value);
-  const seedRaw = document.getElementById("seed").value;
+  if (session) session.destroy();
+
+  const name = els.sample.value;
+  const N = Number(els.n.value);
+  const h = Number(els.h.value);
+  const w = Number(els.w.value);
+  const seedRaw = els.seed.value;
   const seed = seedRaw === "" ? null : Number(seedRaw);
 
-  runBtn.disabled = true;
-  setStatus("Solving…");
+  session = SessionClass(name, N, h, w, seed, 1);
+  dims = { w, h, patterns: session.num_patterns() };
 
-  // Defer so the browser can paint the disabled/"Solving…" state first.
-  setTimeout(() => {
-    const t0 = performance.now();
-    const proxy = solveFn(name, N, h, w, seed, 1, 20);
-    const r = proxy.toJs({ dict_converter: Object.fromEntries });
-    proxy.destroy();
-    const ms = Math.round(performance.now() - t0);
+  draw(takeBytes(session.frame())); // initial blurry (all-possible) state
+  setStatus(`Ready — ${dims.patterns} patterns. Press Play.`);
+  setPlaying(true);
+}
 
-    if (r.ok) {
-      draw(r.data, w, h);
-      setStatus(
-        `${name}: ${r.patterns} patterns, solved on attempt ${r.attempt} ` +
-        `(${w}×${h} in ${ms} ms)`);
-    } else {
-      setStatus(`Gave up after contradictions — try a larger N or new seed.`);
-    }
-    runBtn.disabled = false;
-  }, 0);
+function singleStep() {
+  if (!session) return;
+  setPlaying(false);
+  advance(1);
 }
 
 async function main() {
@@ -131,12 +185,15 @@ async function main() {
 
     setStatus("Loading wfc package…");
     await loadWfcPackage(pyodide);
-    solveFn = pyodide.runPython(DRIVER);
+    SessionClass = pyodide.runPython(DRIVER);
 
-    runBtn.addEventListener("click", generate);
-    runBtn.disabled = false;
-    setStatus("Ready — click Generate.");
-    generate(); // render one result on load
+    els.run.addEventListener("click", generate);
+    els.play.addEventListener("click", () => setPlaying(!playing));
+    els.step.addEventListener("click", singleStep);
+    for (const b of [els.run, els.play, els.step]) b.disabled = false;
+
+    requestAnimationFrame(frameLoop);
+    generate(); // build a session and start animating on load
   } catch (err) {
     console.error(err);
     setStatus(`Error: ${err.message}`);

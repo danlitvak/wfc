@@ -53,6 +53,15 @@ main {
   color: var(--muted);
 }
 
+.row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.row button {
+  flex: 1;
+}
+
 .controls input,
 .controls select {
   width: 90px;
