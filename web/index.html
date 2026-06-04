@@ -11,18 +11,29 @@
     <h1>WFC Visualizer</h1>
     <p class="sub">
       Overlapping Wave Function Collapse — real Python (numpy) running in your
-      browser via Pyodide.
+      browser via Pyodide. Paint a sample, then watch it collapse.
     </p>
   </header>
 
   <main>
-    <section class="controls">
-      <label>Sample
-        <select id="sample">
+    <section class="panel sample-panel">
+      <h2>Sample</h2>
+      <canvas id="sample-canvas" class="sample-canvas"></canvas>
+      <div id="palette" class="palette"></div>
+      <label>Preset
+        <select id="preset">
+          <option value="">—</option>
           <option value="maze">maze</option>
           <option value="checker">checker</option>
         </select>
       </label>
+      <label>Rows <input id="srows" type="number" min="2" max="24" value="8"></label>
+      <label>Cols <input id="scols" type="number" min="2" max="24" value="8"></label>
+      <button id="clear" class="secondary">Clear</button>
+    </section>
+
+    <section class="panel controls">
+      <h2>Output</h2>
       <label>N <input id="n" type="number" min="2" max="4" value="3"></label>
       <label>Height <input id="h" type="number" min="4" max="80" value="24"></label>
       <label>Width <input id="w" type="number" min="4" max="80" value="40"></label>
@@ -30,12 +41,13 @@
       <label>Speed <input id="speed" type="range" min="1" max="40" value="6"></label>
       <button id="run" disabled>Generate</button>
       <div class="row">
-        <button id="play" disabled>Play</button>
-        <button id="step" disabled>Step</button>
+        <button id="play" class="secondary" disabled>Play</button>
+        <button id="step" class="secondary" disabled>Step</button>
       </div>
     </section>
 
-    <section class="output">
+    <section class="panel output">
+      <h2>Result</h2>
       <canvas id="canvas" width="400" height="240"></canvas>
       <p id="status" class="status">Loading Pyodide…</p>
     </section>

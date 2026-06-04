@@ -17,13 +17,10 @@ body {
   line-height: 1.5;
 }
 
-header {
-  padding: 1.5rem 1.5rem 0.5rem;
-}
-
+header { padding: 1.5rem 1.5rem 0.5rem; }
 h1 { margin: 0; font-size: 1.5rem; }
-
-.sub { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+h2 { margin: 0 0 0.25rem; font-size: 1rem; color: var(--muted); font-weight: 600; }
+.sub { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; max-width: 60ch; }
 
 main {
   display: flex;
@@ -33,7 +30,7 @@ main {
   align-items: flex-start;
 }
 
-.controls {
+.panel {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -41,10 +38,10 @@ main {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 1rem;
-  min-width: 180px;
+  min-width: 200px;
 }
 
-.controls label {
+.panel label {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -53,18 +50,9 @@ main {
   color: var(--muted);
 }
 
-.row {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.row button {
-  flex: 1;
-}
-
-.controls input,
-.controls select {
-  width: 90px;
+.panel input,
+.panel select {
+  width: 100px;
   background: var(--bg);
   color: var(--ink);
   border: 1px solid var(--border);
@@ -73,8 +61,37 @@ main {
   font-size: 0.9rem;
 }
 
+.panel input[type="range"] { padding: 0; }
+
+.sample-canvas {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: crosshair;
+  touch-action: none;       /* let pointer drags paint instead of scrolling */
+  align-self: center;
+}
+
+.palette {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(75, 140, 255, 0.4);
+}
+
 button {
-  margin-top: 0.25rem;
   background: var(--accent);
   color: white;
   border: none;
@@ -85,18 +102,18 @@ button {
   cursor: pointer;
 }
 
-button:disabled {
-  opacity: 0.5;
-  cursor: progress;
+button.secondary {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink);
 }
 
-.output {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
+button:disabled { opacity: 0.5; cursor: progress; }
 
-canvas {
+.row { display: flex; gap: 0.5rem; }
+.row button { flex: 1; }
+
+canvas#canvas {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -108,4 +125,5 @@ canvas {
   color: var(--muted);
   font-size: 0.85rem;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  max-width: 40ch;
 }

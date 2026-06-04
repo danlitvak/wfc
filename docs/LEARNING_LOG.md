@@ -177,3 +177,43 @@ narrative: *what* we built, *why*, and *what I learned doing it*.
 - Milestone 4: editable sample grid on the left + wire "edit sample → re-extract
   patterns → restart" so the user paints their own input. Expensive recompute
   (patterns + adjacency) happens once per edit; per-frame stays cheap.
+
+---
+
+## 2026-06-03 — Milestone 4 complete: paintable sample editor
+
+**Web change** (`web/`):
+- Three-panel layout: **Sample** editor (left), **Output** controls (middle),
+  **Result** canvas (right).
+- Sample editor on its own canvas: click/drag to paint with a palette picker,
+  resize rows/cols (preserving overlap), load a preset, or Clear. Painting only
+  mutates a local JS grid — no recompute per stroke.
+- `Session` now takes a **raw sample grid** instead of a preset name. Generate
+  reads the painted grid, re-extracts patterns + adjacency, and restarts the
+  animation. This matches the plan's "edit → Run" model: the expensive step runs
+  once per Generate, per-frame stays cheap.
+- Added a Python `metadata()` returning the palette + presets as JSON, so JS gets
+  them without juggling PyProxies.
+
+**Concepts learned / notes**
+- *Passing a JS nested array into Python:* a JS Array arrives as a `JsProxy`, not
+  a Python `list`. Use `pyodide.toPy(grid)` to get a real list of lists that
+  `np.asarray` accepts, then `.destroy()` the proxy once the Session has copied
+  it into numpy.
+- Pointer events (`pointerdown`/`move`/`up` + `setPointerCapture`) plus
+  `touch-action: none` give click-and-drag painting that also works on touch.
+- Keep the sample canvas at native pixel size (no CSS scaling) so
+  `getBoundingClientRect` maps 1:1 to grid cells — simpler hit-testing.
+- Security: clear child nodes with `replaceChildren()` rather than
+  `innerHTML = ""` (no parsing, no XSS surface).
+
+**Verified**
+- Headless Node + Pyodide: Session built from (a) the maze preset → 44 patterns,
+  (b) a custom 3-colour painted grid → 3 patterns, (c) a blank grid → 1 pattern;
+  all animate to `done`. `metadata()` returns 4 palette colours + presets.
+
+**Next step**
+- Milestone 5 (polish + deploy): more presets, a symmetry control (the engine
+  already supports `symmetry=1..8`), tidy UI, and deploy to GitHub Pages. For
+  Pages, decide how the page finds `wfc/` (the `../wfc` fetch path) when served
+  from the repo root or a `/docs` site root.
