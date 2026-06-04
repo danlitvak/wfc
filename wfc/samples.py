@@ -35,7 +35,31 @@ MAZE = np.array([
     [0, 0, 0, 0, 0, 0, 0, 0],
 ], dtype=int)
 
+# A grid of connected pipes — WFC weaves these into branching pipe networks.
+PIPES = np.array([
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+], dtype=int)
+
+# Coloured blocks separated by gaps — shows the palette and a tiled feel.
+BLOCKS = np.array([
+    [2, 2, 0, 3, 3, 0],
+    [2, 2, 0, 3, 3, 0],
+    [0, 0, 0, 0, 0, 0],
+    [3, 3, 0, 2, 2, 0],
+    [3, 3, 0, 2, 2, 0],
+    [0, 0, 0, 0, 0, 0],
+], dtype=int)
+
 SAMPLES = {
-    "checker": CHECKER,
     "maze": MAZE,
+    "pipes": PIPES,
+    "blocks": BLOCKS,
+    "checker": CHECKER,
 }

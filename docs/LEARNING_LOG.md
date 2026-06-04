@@ -217,3 +217,39 @@ narrative: *what* we built, *why*, and *what I learned doing it*.
   already supports `symmetry=1..8`), tidy UI, and deploy to GitHub Pages. For
   Pages, decide how the page finds `wfc/` (the `../wfc` fetch path) when served
   from the repo root or a `/docs` site root.
+
+---
+
+## 2026-06-03 — Milestone 5 complete: polish + GitHub Pages deploy
+
+**Polish**
+- Added presets `pipes` and `blocks` to `wfc/samples.py` (now maze/pipes/blocks/
+  checker). The web preset dropdown is built dynamically from the `metadata()`
+  sample list, so new Python presets appear with no JS change.
+- Added a **Symmetry** control (1/2/4/8) wired through to `extract_patterns`.
+  Confirmed maze grows 44→105 patterns with full symmetry; already-symmetric
+  samples (pipes/blocks/checker) are unchanged — a nice sanity check that the D4
+  transforms are correct.
+
+**Deployment (GitHub Pages, serve from `main` / root)**
+- `.nojekyll` at repo root — **required**: GitHub Pages runs Jekyll by default,
+  which excludes files starting with `_`. Without this, `wfc/__init__.py` is not
+  published and the import 404s. (Took a second to spot — the underscore rule.)
+- Root `index.html` does a `<meta http-equiv="refresh">` redirect to `web/`, so
+  the clean URL `…github.io/wfc/` lands on the app.
+- The existing `../wfc/` fetch path resolves correctly on Pages: page at
+  `…/wfc/web/`, package at `…/wfc/wfc/*.py`. No code change needed.
+- `.py` files served as static text; `fetch().text()` doesn't care about the
+  content-type, so no MIME config needed.
+
+**Verified**
+- 14 pytest tests pass; all four presets extract across symmetry 1/2/4/8.
+- Local static server reproduces the Pages URL shape: `/` → redirect `./web/`,
+  `/web/` serves, and `/wfc/__init__.py` + `/wfc/samples.py` return 200.
+
+**To go live (manual, one-time):** repo **Settings → Pages → Deploy from a
+branch → `main` / `root`**. (No `gh` CLI in this environment to script it.)
+
+**Project complete** — all five milestones done. Possible future extensions:
+backtracking instead of restart, image-sample import, tile (non-overlapping)
+mode, shareable URL state.

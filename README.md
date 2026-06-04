@@ -13,15 +13,17 @@ round-trips, smooth animation over thousands of steps.
 > Personal learning project / portfolio piece. Build progress and the reasoning
 > behind each decision are logged in [`docs/LEARNING_LOG.md`](docs/LEARNING_LOG.md).
 
+**▶ Live demo: https://danlitvak.github.io/wfc/**
+
 ## Status
 
 | Milestone | Description | State |
 |-----------|-------------|-------|
 | 1 | `wfc/` package + pytest, runs in a terminal on a hardcoded sample | ✅ done |
-| 2 | Static page + Pyodide loads the package, renders a final result | ⬜ next |
-| 3 | Live stepping / animation on the output canvas | ⬜ |
-| 4 | Editable sample grid + controls | ⬜ |
-| 5 | Polish: presets, symmetry options, deploy to GitHub Pages | ⬜ |
+| 2 | Static page + Pyodide loads the package, renders a final result | ✅ done |
+| 3 | Live stepping / animation on the output canvas | ✅ done |
+| 4 | Editable sample grid + controls | ✅ done |
+| 5 | Polish: presets, symmetry options, deploy to GitHub Pages | ✅ done |
 
 ## How it works
 
@@ -56,15 +58,50 @@ Requires Python 3.12+ and numpy.
 # install test dependency
 python -m pip install pytest
 
-# run the test suite
+# run the test suite (from the project root)
 python -m pytest
 
 # terminal demo (renders to the console with ANSI colours)
 python run_demo.py maze --n 3 --size 16 32 --seed 7
 ```
 
-`run_demo.py` options: `sample` (`checker` | `maze`), `--n` pattern size,
-`--size H W` output grid, `--seed`, `--symmetry` (1–8), `--attempts` restarts.
+Use `python -m pytest` rather than a bare `pytest`: the `-m` form puts the
+project root on `sys.path` so `import wfc` resolves, and it avoids the
+"Scripts not on PATH" warning on a fresh pytest install.
+
+Handy variants:
+
+```bash
+python -m pytest -v                    # verbose: one line per test
+python -m pytest -q                    # quiet: just the summary
+python -m pytest tests/test_solver.py  # a single file
+python -m pytest -k checker            # only tests whose name matches "checker"
+python -m pytest -x                    # stop at the first failure
+```
+
+`run_demo.py` options: `sample` (`maze` | `pipes` | `blocks` | `checker`),
+`--n` pattern size, `--size H W` output grid, `--seed`, `--symmetry` (1–8),
+`--attempts` restarts.
+
+## Running the web app locally
+
+The browser build fetches the `wfc/*.py` files over HTTP, so it needs a static
+server (opening `index.html` with `file://` won't work). From the project root:
+
+```bash
+python -m http.server 8000
+# then open http://127.0.0.1:8000/  (redirects to the app under /web/)
+```
+
+## Deployment (GitHub Pages)
+
+The site is served straight from the repo — no build step.
+
+- **Settings → Pages → Source: “Deploy from a branch” → `main` / `root`.**
+- `.nojekyll` (repo root) disables Jekyll. This is required: Jekyll skips files
+  beginning with `_`, which would drop `wfc/__init__.py` and break the import.
+- The root `index.html` redirects to `web/`, which `fetch()`es the package from
+  `../wfc/` — i.e. `https://<user>.github.io/wfc/wfc/*.py`.
 
 ## Documentation
 

@@ -86,6 +86,7 @@ const els = {
   scols: document.getElementById("scols"),
   clear: document.getElementById("clear"),
   n: document.getElementById("n"),
+  symmetry: document.getElementById("symmetry"),
   h: document.getElementById("h"),
   w: document.getElementById("w"),
   seed: document.getElementById("seed"),
@@ -156,6 +157,17 @@ function editorResize(rows, cols) {
   }
   editor.rows = rows; editor.cols = cols; editor.grid = g;
   editorDraw();
+}
+
+function buildPresetOptions(defaultName) {
+  els.preset.replaceChildren();
+  for (const name of Object.keys(SAMPLES)) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    els.preset.appendChild(opt);
+  }
+  els.preset.value = defaultName;
 }
 
 function editorLoadPreset(name) {
@@ -248,6 +260,7 @@ function generate() {
   if (session) { session.destroy(); session = null; }
 
   const N = Number(els.n.value);
+  const symmetry = Number(els.symmetry.value);
   const h = Number(els.h.value);
   const w = Number(els.w.value);
   const seedRaw = els.seed.value;
@@ -255,7 +268,7 @@ function generate() {
 
   const pySample = pyodide.toPy(editor.grid);
   try {
-    session = SessionClass(pySample, N, h, w, seed, 1);
+    session = SessionClass(pySample, N, h, w, seed, symmetry);
   } finally {
     pySample.destroy();
   }
@@ -301,6 +314,7 @@ async function main() {
 
     buildPalette();
     wireEditor();
+    buildPresetOptions("maze");
     editorLoadPreset("maze");
 
     els.run.addEventListener("click", generate);
