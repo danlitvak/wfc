@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="phosphor">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Wave Function Collapse — an interactive primer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body class="booting">
+
+  <!-- ============ PLAYGROUND ============ -->
+  <section class="playground" id="playground" data-screen-label="Playground">
+    <canvas id="wfc-canvas"></canvas>
+    <div class="fx"></div>
+
+    <!-- top bar -->
+    <header class="topbar">
+      <div class="wordmark">
+        <span class="glyph"></span>
+        <b>Wave&nbsp;Function&nbsp;Collapse</b>
+        <span>v1.0 · tiled model</span>
+      </div>
+      <nav class="theme-switch" id="themeSwitch" aria-label="Visual theme">
+        <button data-theme-id="phosphor" class="active">Phosphor</button>
+        <button data-theme-id="circuit">Circuit</button>
+        <button data-theme-id="spectrum">Spectrum</button>
+      </nav>
+    </header>
+
+    <!-- landing title (doubles as the hero) -->
+    <div class="hero" id="hero">
+      <h1>Wave&nbsp;Function<br /><em>Collapse</em></h1>
+      <p>Watch order emerge from possibility</p>
+      <div class="enter" id="enterHint">collapsing the grid…</div>
+    </div>
+
+    <!-- scroll cue -->
+    <div class="scroll-cue">
+      <span>scroll to learn how it works</span>
+      <span class="line"></span>
+    </div>
+
+    <!-- control dock -->
+    <div class="dock" id="dock">
+      <div class="status" id="status" data-state="running">
+        <div class="stat-row"><span class="led"></span><span class="lab" id="statusLabel">Running</span></div>
+        <div class="sub" id="statusSub">0 / 0 cells collapsed</div>
+      </div>
+      <button class="btn primary" id="btnGenerate" title="New seed (G)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /><path d="M3 21v-5h5" /></svg>
+        <span class="t">Generate</span>
+      </button>
+      <button class="btn icon" id="btnPlay" title="Play / Pause (Space)">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+      </button>
+      <button class="btn icon" id="btnStep" title="Step one cell (→)">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5v14l9-7z" /><rect x="16" y="5" width="2.6" height="14" rx="1" /></svg>
+      </button>
+      <button class="btn icon" id="btnSettings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="8" x2="20" y2="8" /><circle cx="9" cy="8" r="2.4" fill="var(--bg)" /><line x1="4" y1="16" x2="20" y2="16" /><circle cx="15" cy="16" r="2.4" fill="var(--bg)" /></svg>
+      </button>
+    </div>
+
+    <!-- settings panel -->
+    <aside class="panel" id="panel" aria-label="Generator settings">
+      <div class="panel-head">
+        <h2>Generator</h2>
+        <button class="close" id="panelClose" aria-label="Close">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="field">
+          <label><span class="name">Grid resolution</span><span class="val" id="vGrid">28</span></label>
+          <input type="range" id="sGrid" min="8" max="64" step="2" value="28" />
+        </div>
+        <div class="field">
+          <label><span class="name">Speed</span><span class="val" id="vSpeed">120 c/s</span></label>
+          <input type="range" id="sSpeed" min="4" max="600" step="2" value="120" />
+        </div>
+        <div class="field">
+          <label><span class="name">Density</span><span class="val" id="vDensity">0.55</span></label>
+          <input type="range" id="sDensity" min="0" max="1" step="0.01" value="0.55" />
+        </div>
+        <div class="field">
+          <label><span class="name">Complexity</span><span class="val" id="vComplex">0.40</span></label>
+          <input type="range" id="sComplex" min="0" max="1" step="0.01" value="0.40" />
+        </div>
+
+        <div class="toggle-row"><span class="name">Show entropy heat</span><span class="sw" id="swHeat" role="switch"></span></div>
+        <div class="toggle-row"><span class="name">Scanline texture</span><span class="sw" id="swScan" role="switch"></span></div>
+        <div class="toggle-row"><span class="name">Auto-loop</span><span class="sw" id="swLoop" role="switch"></span></div>
+
+        <div class="divider"></div>
+        <div class="section-label">Colour palette</div>
+        <div class="palette" id="palette"></div>
+        <div class="preset-row" id="presets"></div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- ============ LEARNING ============ -->
+  <main class="learn">
+    <div class="wrap">
+
+      <section class="sec" data-screen-label="01 The idea">
+        <div class="reveal">
+          <div class="idx">01 / THE IDEA</div>
+          <h3>Every cell starts knowing nothing — and every possibility at once.</h3>
+          <p>Wave Function Collapse borrows its name from quantum mechanics as a <strong>metaphor</strong>. At the start, each cell on the grid is in <strong>superposition</strong>: it could become any tile in the set. The algorithm repeatedly picks the most-constrained cell, <strong>observes</strong> it — forcing it into a single tile — and lets that decision ripple outward.</p>
+          <p>Underneath the physics costume it is really a humble <strong>constraint solver</strong>. Tiles carry rules about who may sit beside them; WFC just keeps choosing and pruning until every cell agrees.</p>
+          <div class="callouts">
+            <div class="callout"><div class="k">Superposition</div><div class="t">A cell holds <b>all 16 tiles</b> until something rules them out.</div></div>
+            <div class="callout"><div class="k">Observation</div><div class="t">Collapsing a cell <b>picks one tile</b>, weighted by frequency.</div></div>
+            <div class="callout"><div class="k">Propagation</div><div class="t">That choice <b>removes options</b> from the neighbours.</div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec" data-screen-label="02 Entropy">
+        <div class="reveal">
+          <div class="idx">02 / ENTROPY &amp; OBSERVATION</div>
+          <h3>Always collapse the cell with the least to lose.</h3>
+          <p>A cell's <strong>entropy</strong> is just how many tiles it could still become. WFC always observes the cell with the <strong>lowest entropy</strong> — the one closest to being decided — because committing there is least likely to cause a conflict. Ties are broken with a pinch of randomness, which is why every run looks different.</p>
+          <p>When a cell is observed, the winning tile is drawn from its survivors using their <strong>weights</strong>. Flip on <code>Show entropy heat</code> in the panel to watch the field cool from chaotic to certain in real time.</p>
+        </div>
+      </section>
+
+      <section class="sec" data-screen-label="03 Propagation">
+        <div class="reveal">
+          <div class="idx">03 / PROPAGATION</div>
+          <h3>One decision pushes a wave of consequences across the board.</h3>
+          <p>The moment a cell collapses, its neighbours must drop any tile that no longer fits. If a neighbour loses options, <em>its</em> neighbours are re-checked too. The change <strong>propagates</strong> outward like a ripple — sometimes a single cell, sometimes a cascade that crosses the whole grid. The bright flashes you see are exactly this wave.</p>
+          <div class="steps-list">
+            <div class="step-item"><div class="num">→</div><div class="body"><h4>Observe</h4><p>Pick the lowest-entropy cell and collapse it to one tile.</p></div></div>
+            <div class="step-item"><div class="num">→</div><div class="body"><h4>Propagate</h4><p>Remove now-impossible tiles from neighbours, repeat until stable.</p></div></div>
+            <div class="step-item"><div class="num">→</div><div class="body"><h4>Repeat</h4><p>Loop until every cell is decided — or a contradiction appears.</p></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec" data-screen-label="04 The tiles">
+        <div class="reveal">
+          <div class="idx">04 / THE TILES</div>
+          <h3>Adjacency is the whole game — tiles connect only where edges agree.</h3>
+          <p>This playground uses the classic <strong>pipes</strong> set: 16 tiles built from four edges that are each either open or closed. Two tiles may be neighbours only when their touching edges match — a line out the right side <strong>must</strong> meet a line coming in from the left. That single rule, applied everywhere, is enough to weave the whole network.</p>
+          <div class="tiles-grid" id="tilesGrid"></div>
+        </div>
+      </section>
+
+      <section class="sec" data-screen-label="05 Contradictions">
+        <div class="reveal">
+          <div class="idx">05 / CONTRADICTIONS</div>
+          <h3>Sometimes a cell runs out of options. Then you start again.</h3>
+          <p>Because choices are made locally, WFC can paint itself into a corner: a cell whose every tile has been eliminated. This is a <strong>contradiction</strong>. The simplest cure — and what this demo does — is to <strong>restart</strong> with a fresh seed. Smarter implementations <em>backtrack</em>, rewinding only the last few moves. The permissive pipes set rarely fails, but bump the resolution up and you may catch one in the act.</p>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <div class="reveal">
+          <a href="#playground">↑ &nbsp;Back to the grid</a>
+          <div class="meta">A real (simplified) WFC engine · pipes / knots tileset · built for tinkering</div>
+        </div>
+      </footer>
+    </div>
+  </main>
+
+  <script src="js/wfc.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

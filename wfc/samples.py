@@ -14,6 +14,10 @@ PALETTE = np.array([
     [230, 230, 240],  # 1 light
     [200, 70, 70],    # 2 red
     [70, 140, 200],   # 3 blue
+    [238, 179, 73],   # 4 amber
+    [86, 190, 126],   # 5 green
+    [160, 112, 220],  # 6 violet
+    [220, 110, 165],  # 7 pink
 ], dtype=float)
 
 # Two-colour checkerboard: the simplest non-trivial overlapping case.

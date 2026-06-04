@@ -3,58 +3,228 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WFC Visualizer</title>
+  <title>Wave Function Collapse</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <header>
-    <h1>WFC Visualizer</h1>
-    <p class="sub">
-      Overlapping Wave Function Collapse — real Python (numpy) running in your
-      browser via Pyodide. Paint a sample, then watch it collapse.
-    </p>
-  </header>
+<body class="booting">
+  <section class="playground" id="playground" data-screen-label="Playground">
+    <canvas id="canvas" class="output-canvas" aria-label="Wave Function Collapse output"></canvas>
+    <div class="fx" aria-hidden="true"></div>
 
-  <main>
-    <section class="panel sample-panel">
-      <h2>Sample</h2>
-      <canvas id="sample-canvas" class="sample-canvas"></canvas>
-      <div id="palette" class="palette"></div>
-      <label>Preset
-        <select id="preset"></select>
-      </label>
-      <label>Rows <input id="srows" type="number" min="2" max="24" value="8"></label>
-      <label>Cols <input id="scols" type="number" min="2" max="24" value="8"></label>
-      <button id="clear" class="secondary">Clear</button>
-    </section>
-
-    <section class="panel controls">
-      <h2>Output</h2>
-      <label>N <input id="n" type="number" min="2" max="4" value="3"></label>
-      <label>Symmetry
-        <select id="symmetry">
-          <option value="1">1 — none</option>
-          <option value="2">2 — mirror</option>
-          <option value="4">4 — rotations</option>
-          <option value="8" selected>8 — full</option>
-        </select>
-      </label>
-      <label>Height <input id="h" type="number" min="4" max="80" value="24"></label>
-      <label>Width <input id="w" type="number" min="4" max="80" value="40"></label>
-      <label>Seed <input id="seed" type="number" value="7"></label>
-      <label>Speed <input id="speed" type="range" min="1" max="40" value="6"></label>
-      <button id="run" disabled>Generate</button>
-      <div class="row">
-        <button id="play" class="secondary" disabled>Play</button>
-        <button id="step" class="secondary" disabled>Step</button>
+    <header class="topbar">
+      <div class="wordmark">
+        <span class="glyph" aria-hidden="true"></span>
+        <b>Wave Function Collapse</b>
+        <span>overlapping model</span>
       </div>
-    </section>
+    </header>
 
-    <section class="panel output">
-      <h2>Result</h2>
-      <canvas id="canvas" width="400" height="240"></canvas>
-      <p id="status" class="status">Loading Pyodide…</p>
-    </section>
+    <div class="hero" id="hero">
+      <h1>Wave Function<br><em>Collapse</em></h1>
+      <p>Paint a sample. Watch constraints settle.</p>
+      <div class="enter" id="enterHint">loading python engine...</div>
+      <div class="boot-progress" aria-hidden="true"><span></span></div>
+    </div>
+
+    <div class="scroll-cue">
+      <span>scroll to learn how it works</span>
+      <span class="line" aria-hidden="true"></span>
+    </div>
+
+    <div class="dock" id="dock">
+      <div class="status" id="status" data-state="loading">
+        <div class="stat-row"><span class="led" aria-hidden="true"></span><span class="status-spinner" aria-hidden="true"></span><span class="lab" id="statusLabel">Loading</span></div>
+        <div class="sub" id="statusSub">starting Pyodide</div>
+      </div>
+      <button type="button" class="btn primary" id="run" disabled title="Generate from the painted sample">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
+        <span class="t">Generate</span>
+      </button>
+      <button type="button" class="btn icon" id="reset" disabled title="Go to step 0">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="5" y="5" width="2.6" height="14" rx="1"></rect><path d="M19 5v14l-10-7z"></path></svg>
+      </button>
+      <button type="button" class="btn icon" id="play" disabled title="Play / Pause">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"></path></svg>
+      </button>
+      <button type="button" class="btn icon" id="step" disabled title="Step one observation">
+        <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 5v14l9-7z"></path><rect x="16" y="5" width="2.6" height="14" rx="1"></rect></svg>
+      </button>
+      <button type="button" class="btn icon" id="btnSettings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="4" y1="8" x2="20" y2="8"></line><circle cx="9" cy="8" r="2.4" fill="var(--bg)"></circle><line x1="4" y1="16" x2="20" y2="16"></line><circle cx="15" cy="16" r="2.4" fill="var(--bg)"></circle></svg>
+      </button>
+    </div>
+
+    <aside class="panel" id="panel" aria-label="Generator settings">
+      <div class="panel-head">
+        <h2>Generator</h2>
+        <button type="button" class="close" id="panelClose" aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+        </button>
+      </div>
+
+      <div class="panel-body">
+        <div class="section-label">Sample</div>
+        <canvas id="sample-canvas" class="sample-canvas" aria-label="Editable sample grid"></canvas>
+        <div id="palette" class="palette" aria-label="Paint colour"></div>
+        <div class="palette-tools">
+          <button type="button" class="btn secondary wide add-colour" id="addColor">
+            <span aria-hidden="true">+</span>
+            <span>Add color</span>
+          </button>
+          <input id="customColor" class="native-colour" type="color" value="#ffffff" aria-label="Choose custom color">
+        </div>
+
+        <div class="field">
+          <label for="preset"><span class="name">Preset</span></label>
+          <span class="select-shell">
+            <select id="preset"></select>
+            <button type="button" class="select-trigger" aria-haspopup="listbox" aria-expanded="false">
+              <span class="select-value"></span>
+            </button>
+            <span class="select-menu" role="listbox"></span>
+          </span>
+        </div>
+        <div class="field pair">
+          <div class="size-control">
+            <label for="srows" class="name">Rows</label>
+            <div class="stepper">
+              <button type="button" data-sample-step="rows" data-delta="-1" aria-label="Decrease rows">-</button>
+              <input id="srows" type="number" min="2" max="24" value="8">
+              <button type="button" data-sample-step="rows" data-delta="1" aria-label="Increase rows">+</button>
+            </div>
+          </div>
+          <div class="size-control">
+            <label for="scols" class="name">Cols</label>
+            <div class="stepper">
+              <button type="button" data-sample-step="cols" data-delta="-1" aria-label="Decrease columns">-</button>
+              <input id="scols" type="number" min="2" max="24" value="8">
+              <button type="button" data-sample-step="cols" data-delta="1" aria-label="Increase columns">+</button>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="clear" class="btn secondary wide">Clear sample</button>
+
+        <div class="divider"></div>
+        <div class="section-label">Output</div>
+
+        <div class="field pair">
+          <label for="n"><span class="name">Pattern N</span><input id="n" type="number" min="2" max="4" value="3"></label>
+          <label for="symmetry"><span class="name">Symmetry</span>
+            <span class="select-shell compact">
+              <select id="symmetry">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="4">4</option>
+                <option value="8" selected>8</option>
+              </select>
+              <button type="button" class="select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <span class="select-value"></span>
+              </button>
+              <span class="select-menu" role="listbox"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="field pair">
+          <label for="h"><span class="name">Height</span><input id="h" type="number" min="4" max="80" value="24"></label>
+          <label for="w"><span class="name">Width</span><input id="w" type="number" min="4" max="80" value="40"></label>
+        </div>
+
+        <div class="field">
+          <label for="seed"><span class="name">Seed</span></label>
+          <input id="seed" type="number" value="7">
+        </div>
+
+        <div class="field">
+          <label for="speed"><span class="name">Speed</span><span class="val" id="speedValue">6 steps/frame</span></label>
+          <input id="speed" type="range" min="1" max="40" value="6">
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <main class="learn">
+    <div class="wrap">
+      <section class="sec">
+        <div class="reveal">
+          <div class="idx">01 / PATTERN EXTRACTION</div>
+          <h3>The sample is converted into weighted N by N patterns.</h3>
+          <p>The browser sends the painted grid into Python as a 2D array of palette indices. The engine slides an N by N window across the sample, optionally wrapping at the edges, and stores each unique window with a frequency count. Those counts become the weights used during random collapse.</p>
+          <pre><code>patterns, weights = extract_patterns(
+    sample,
+    N=3,
+    periodic_input=True,
+    symmetry=8,
+)</code></pre>
+          <p>With symmetry enabled, each observed window can contribute rotated and mirrored variants before deduplication. That is why increasing symmetry usually increases the number of available patterns without changing the source sample.</p>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="reveal">
+          <div class="idx">02 / ADJACENCY TABLE</div>
+          <h3>Compatibility is precomputed once, then reused during solving.</h3>
+          <p>For every ordered pair of patterns, the engine checks whether the overlapping cells agree when one pattern is placed above, below, left, or right of the other. The result is a boolean lookup table shaped <code>(4, T, T)</code>, where <code>T</code> is the number of unique patterns.</p>
+          <pre><code>compatible = build_adjacency(patterns)
+
+# compatible[d, a, b] is true when pattern b
+# may sit in direction d from pattern a.</code></pre>
+          <p>This is the main performance tradeoff: pattern comparisons happen up front, so propagation can use table lookups instead of repeatedly comparing N by N arrays.</p>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="reveal">
+          <div class="idx">03 / WAVE STATE</div>
+          <h3>The output grid is a boolean possibility tensor.</h3>
+          <p>Each output cell starts with every pattern enabled. A collapse sets one cell to a single chosen pattern, then propagation intersects each neighbour with the patterns still allowed by the changed cell.</p>
+          <pre><code># wave[row, col, pattern] == is this pattern still possible?
+wave = np.ones((height, width, pattern_count), dtype=bool)
+
+allowed = compatible[direction][possible].any(axis=0)
+neighbour = neighbour &amp; allowed</code></pre>
+          <p>The solver picks the undecided cell with the fewest remaining patterns. That count is used as a cheap entropy proxy, with a small random tie-break so repeated runs are not biased toward one corner.</p>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="reveal">
+          <div class="idx">04 / RENDERING</div>
+          <h3>Uncollapsed cells are rendered as averages of their possibilities.</h3>
+          <p>A fully collapsed cell draws the top-left colour of its selected pattern. An unresolved cell averages the colours of every pattern still possible there, which is why the demo starts soft and becomes sharper as constraints remove options.</p>
+          <pre><code>tl_rgb = palette[patterns[:, 0, 0]]
+counts = wave.sum(axis=2)
+summed = np.tensordot(wave, tl_rgb, axes=([2], [0]))
+frame = summed / counts[..., None]</code></pre>
+          <p>The renderer is vectorized because it runs every animation frame. Avoiding a Python loop over every output cell keeps the browser animation responsive even though the engine is running through Pyodide.</p>
+        </div>
+      </section>
+
+      <section class="sec">
+        <div class="reveal">
+          <div class="idx">05 / BROWSER BRIDGE</div>
+          <h3>Static files load the same Python package through Pyodide.</h3>
+          <p>The page fetches the files in <code>wfc/</code>, writes them into Pyodide's in-memory filesystem, and imports the package normally. A long-lived Python <code>Session</code> object owns the solver, so Play, Pause, Step, and Step 0 operate on the same state.</p>
+          <pre><code>const pySample = pyodide.toPy(editor.grid);
+const pyPalette = pyodide.toPy(PALETTE);
+
+session = SessionClass(
+  pySample, N, height, width, seed, symmetry, pyPalette
+);</code></pre>
+          <p>Generate creates a fresh session and starts playback. Step 0 creates the same fresh session but leaves it paused, which exposes the initial all-possible wave for manual stepping.</p>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <div class="reveal">
+          <a href="#playground">Back to the grid</a>
+          <div class="meta">Python + numpy in the browser through Pyodide</div>
+        </div>
+      </footer>
+    </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"
