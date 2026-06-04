@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WFC Visualizer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>WFC Visualizer</h1>
+    <p class="sub">
+      Overlapping Wave Function Collapse — real Python (numpy) running in your
+      browser via Pyodide.
+    </p>
+  </header>
+
+  <main>
+    <section class="controls">
+      <label>Sample
+        <select id="sample">
+          <option value="maze">maze</option>
+          <option value="checker">checker</option>
+        </select>
+      </label>
+      <label>N <input id="n" type="number" min="2" max="4" value="3"></label>
+      <label>Height <input id="h" type="number" min="4" max="80" value="24"></label>
+      <label>Width <input id="w" type="number" min="4" max="80" value="40"></label>
+      <label>Seed <input id="seed" type="number" value="7"></label>
+      <button id="run" disabled>Generate</button>
+    </section>
+
+    <section class="output">
+      <canvas id="canvas" width="400" height="240"></canvas>
+      <p id="status" class="status">Loading Pyodide…</p>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"
+          integrity="sha384-90so5tCKvl0xs9agU29IMKlAVzhfzFX7QO//YxQkRhJG58bBZrFN+2ZTRB026X5X"
+          crossorigin="anonymous"></script>
+  <script src="main.js"></script>
+</body>
+</html>

@@ -84,3 +84,52 @@ narrative: *what* we built, *why*, and *what I learned doing it*.
 - Milestone 2: static HTML page + Pyodide loads the `wfc/` package and renders a
   final result to a canvas. Watch for: how Pyodide picks up the package files,
   and numpy version parity with desktop (2.2.5 here).
+
+---
+
+## 2026-06-03 — Milestone 2 complete: Pyodide renders in the browser
+
+**Built** (`web/`):
+- `index.html` — controls (sample, N, height, width, seed) + a canvas + a status
+  line. Loads Pyodide from the jsDelivr CDN.
+- `style.css` — small dark UI.
+- `main.js` — boots Pyodide, `loadPackage("numpy")`, copies the `wfc/*.py` files
+  into Pyodide's in-memory FS, then runs a Python `solve()` driver that returns a
+  flat RGBA buffer. JS draws it to an offscreen canvas and scales up with
+  nearest-neighbour (`image-rendering: pixelated`).
+
+**How the package gets into the browser**
+- No build step / no wheel. `main.js` `fetch()`es each `wfc/*.py` over HTTP and
+  `pyodide.FS.writeFile("wfc/<name>", src)` into the virtual filesystem, then
+  imports normally. The page is at `/web/`, the package at `/wfc/`, so the fetch
+  path is `../wfc/<name>`.
+- Python → JS handoff: `solve()` returns a dict whose `data` is a 1-D uint8 numpy
+  array; on the JS side `proxy.toJs({dict_converter: Object.fromEntries})` turns
+  it into a plain object with `data` as a `Uint8Array`, wrapped in `ImageData`.
+  Remember to `proxy.destroy()` the PyProxy.
+
+**Concepts learned / notes**
+- *Pyodide 0.27.7 ships numpy 2.0.2* (desktop here is 2.2.5). Version parity
+  didn't matter — our code is plain numpy. Pyodide pins one numpy per release.
+- Pyodide runs in **Node.js too**, which let me verify the whole Python path
+  headlessly (no browser): boot → numpy → load package → `solve()` → check the
+  RGBA buffer. Great for CI-style validation of the engine + glue.
+- Security: pinned the CDN loader with Subresource Integrity
+  (`integrity="sha384-…" crossorigin="anonymous"`). Note the loader still pulls
+  `pyodide.asm.*` + the numpy wheel from the same CDN path un-pinned; SRI on the
+  entry script is the practical mitigation.
+- `setTimeout(…, 0)` before the (synchronous, blocking) solve lets the browser
+  paint the "Solving…" / disabled-button state first.
+
+**Verified**
+- Headless Node + Pyodide 0.27.7: `solve("maze", N=3, 24×40, seed=7)` → 44
+  patterns, RGBA buffer length 3840 (= 40·24·4), alpha all 255. Matches the
+  desktop engine exactly.
+- Local static server (`python -m http.server`): `web/index.html`, `main.js`,
+  `style.css`, and `wfc/*.py` all serve 200 at the expected paths.
+
+**Next step**
+- Milestone 3: live stepping/animation. The solver already exposes `step()`; drive
+  it from JS with `requestAnimationFrame` and re-render the (partly collapsed)
+  wave each frame using `render_rgb`'s averaging for the "blurry until resolved"
+  look.
