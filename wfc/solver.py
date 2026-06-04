@@ -44,19 +44,16 @@ class WFCSolver:
         Uses a count of possibilities as a cheap entropy proxy, with a touch of
         random noise so ties don't always resolve toward the same corner.
         """
-        best = None
-        best_score = None
         counts = self.wave.sum(axis=2)
-        for r in range(self.H):
-            for c in range(self.W):
-                n = counts[r, c]
-                if n <= 1:
-                    continue  # already collapsed (or already contradictory)
-                score = n + self.rng.random() * 1e-6
-                if best_score is None or score < best_score:
-                    best_score = score
-                    best = (r, c)
-        return best
+        undecided = counts > 1  # >1 option left; ==1 is decided, ==0 is dead
+        if not undecided.any():
+            return None
+        # Add small noise to break ties, then take the global minimum. Decided
+        # cells are pushed to +inf so they're never picked.
+        noisy = np.where(undecided, counts + self.rng.random(counts.shape) * 1e-6,
+                         np.inf)
+        r, c = np.unravel_index(np.argmin(noisy), counts.shape)
+        return (int(r), int(c))
 
     def observe(self):
         """Collapse the lowest-entropy cell. Returns that cell, or None when done."""

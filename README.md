@@ -112,4 +112,4 @@ The site is served straight from the repo — no build step.
 
 ## License
 
-TBD.
+[MIT](LICENSE) © Daniel Litvak

@@ -253,3 +253,19 @@ branch → `main` / `root`**. (No `gh` CLI in this environment to script it.)
 **Project complete** — all five milestones done. Possible future extensions:
 backtracking instead of restart, image-sample import, tile (non-overlapping)
 mode, shareable URL state.
+
+---
+
+## 2026-06-03 — Final pass
+
+- **Licensed MIT** (`LICENSE` + README badge line). Standard permissive choice
+  for a portfolio piece.
+- **Default symmetry → 8 (full)** in the web UI, so first render shows the
+  richest pattern set.
+- **Perf:** vectorized `WFCSolver._find_min_entropy_cell` (was a Python double
+  loop over every cell each observation). Now `counts = wave.sum(2)`, push
+  decided cells to `+inf`, `argmin` over `counts + tiny noise`. This changes the
+  RNG stream (so a given seed yields a different—but still deterministic—result),
+  which the seeded/validity tests confirm still holds. A full-symmetry maze (105
+  patterns) solves 40×60 in ~2s on desktop CPython.
+- Front-facing visuals intentionally left minimal — design files incoming.
