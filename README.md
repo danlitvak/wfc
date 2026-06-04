@@ -1,9 +1,9 @@
 # WFC Visualizer
 
 An efficient, live-interactive **Wave Function Collapse** visualizer for the web.
-You paint a small sample on the left; the right side animates the WFC output as
-it collapses — learning its adjacency rules automatically from your sample
-(the **overlapping** WFC model).
+The output canvas animates an overlapping WFC solve while the settings drawer
+lets you paint a source sample, adjust pattern size and symmetry, customize the
+palette, and step through the solve from the initial wave state.
 
 The WFC engine is real Python + numpy. It runs in the browser via
 [Pyodide](https://pyodide.org/) (Python compiled to WebAssembly), so the whole
@@ -15,15 +15,34 @@ round-trips, smooth animation over thousands of steps.
 
 **▶ Live demo: https://danlitvak.github.io/wfc/**
 
-## Status
+## Screenshots
 
-| Milestone | Description | State |
-|-----------|-------------|-------|
-| 1 | `wfc/` package + pytest, runs in a terminal on a hardcoded sample | ✅ done |
-| 2 | Static page + Pyodide loads the package, renders a final result | ✅ done |
-| 3 | Live stepping / animation on the output canvas | ✅ done |
-| 4 | Editable sample grid + controls | ✅ done |
-| 5 | Polish: presets, symmetry options, deploy to GitHub Pages | ✅ done |
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/halfway_collapsed.png" alt="WFC output halfway through collapse">
+      <br>
+      <sub>Output mid-solve, with unresolved cells still averaging possible pattern colours.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/fully_collapsed.png" alt="Fully collapsed WFC output">
+      <br>
+      <sub>Fully collapsed output after the wave has resolved to one pattern per cell.</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/settings_menu_open.png" alt="Settings menu with sample editor and controls">
+      <br>
+      <sub>Settings drawer with sample editor, palette controls, presets, symmetry, and output controls.</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/testpy_tests_passing.png" alt="Pytest suite passing in the terminal">
+      <br>
+      <sub>Python test suite passing for pattern extraction, adjacency, rendering, and solver behaviour.</sub>
+    </td>
+  </tr>
+</table>
 
 ## How it works
 
@@ -50,19 +69,24 @@ wfc/
 The `wfc/` package is plain Python — the browser build just imports the same
 code through Pyodide.
 
+The web UI keeps a long-lived Python session in Pyodide for Play/Pause/Step.
+Generate creates a fresh session and starts playback; Step 0 creates the same
+fresh session but leaves it paused so the initial all-possible wave can be
+inspected manually.
+
 ## Running locally
 
 Requires Python 3.12+ and numpy.
 
 ```bash
-# install test dependency
-python -m pip install pytest
+# install runtime/test dependencies
+python -m pip install numpy pytest
 
 # run the test suite (from the project root)
 python -m pytest
 
 # terminal demo (renders to the console with ANSI colours)
-python run_demo.py maze --n 3 --size 16 32 --seed 7
+python run_demo.py blocks --n 2 --size 16 32 --seed 7
 ```
 
 Use `python -m pytest` rather than a bare `pytest`: the `-m` form puts the
@@ -109,6 +133,7 @@ The site is served straight from the repo — no build step.
   decision (why Pyodide), and milestones.
 - [`docs/LEARNING_LOG.md`](docs/LEARNING_LOG.md) — dated build timeline with the
   reasoning and concepts learned along the way.
+- [`docs/TODO.md`](docs/TODO.md) — follow-up SEO and portfolio integration notes.
 
 ## License
 
